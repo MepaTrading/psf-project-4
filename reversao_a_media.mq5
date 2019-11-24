@@ -168,6 +168,7 @@ CComment comment;
 int tester;
 int visual_mode;
 int remainingSeconds;
+string operando = "Sim";
 
 
 //+------------------------------------------------------------------+
@@ -188,8 +189,9 @@ int OnInit()
    bool cond02 = (horario_inicio.hour==horario_termino.hour && horario_inicio.min>horario_termino.min);
    bool cond03 = (horario_termino.hour>horario_fechamento.hour);
    bool cond04 = (horario_termino.hour==horario_fechamento.hour && horario_termino.min>horario_fechamento.min);
+   bool cond05 = (timeframeMinutes <= 0);
    remainingSeconds = timeframeMinutes*60;
-   if(cond01 || cond02 || cond03 || cond04)
+   if(cond01 || cond02 || cond03 || cond04 || cond05)
      {
       printf("Erro nos Parametros de Horários!");
       return INIT_FAILED;
@@ -298,7 +300,8 @@ int OnInit()
    comment.SetText(7,"Ativo: "+Symbol(),COLOR_TEXT);
    comment.SetText(8,StringFormat("Magic: %d",MagicNumber),COLOR_TEXT);
    comment.SetText(9, StringFormat("Timeframe restante: %d h(s) %d min(s) %d sec(s)", remainingSeconds/3600 , (remainingSeconds%3600)/60, (remainingSeconds%3600)%60), COLOR_TEXT);
-   comment.SetText(10,"Autor: Prof. Marcelino Andrade e alunos",COLOR_TEXT);
+   comment.SetText(10,StringFormat("Operando: %s", operando),COLOR_TEXT);
+   comment.SetText(11,"Autor: Prof. Marcelino Andrade e alunos",COLOR_TEXT);
    comment.Show();
 //--- run timer
    if(!tester)
@@ -328,6 +331,12 @@ void OnTimer()
        int mins = (remainingSeconds%3600)/60;
        int secs = (remainingSeconds%3600)%60;
       remainingSeconds-=1;
+      
+      if(remainingSeconds < 0) remainingSeconds = 0; // Preventing remainingSeconds from assuming negative values
+
+      if(remainingSeconds <= 0) operando = "Não";
+
+      comment.SetText(10,StringFormat("Operando: %s", operando),COLOR_TEXT);
       comment.SetText(5,"Time: "+TimeToString(TimeCurrent(),TIME_MINUTES|TIME_SECONDS),COLOR_TEXT);
       comment.SetText(9, StringFormat("Timeframe restante: %d h(s) %d min(s) %d sec(s)", horas, mins, secs), COLOR_TEXT);
       comment.Show();
@@ -543,11 +552,15 @@ bool HorarioEntrada()
    bool cond1  = (horario_atual.hour < horario_termino.hour);
    bool cond2  = (horario_atual.hour == horario_inicio.hour && horario_atual.min >= horario_inicio.min);
    bool cond3  = (horario_atual.hour == horario_termino.hour && horario_atual.min <= horario_termino.min);
+   bool cond4 = (remainingSeconds > 0);
 
-   if((cond0 && cond1) || cond2 || cond3)
-      return true;
-   else
-      return false;
+   if(cond4){
+     if((cond0 && cond1) || cond2 || cond3){
+        return true;
+     }
+   }
+    
+    return false;
   }
 //+------------------------------------------------------------------+
 // Condições Horárias de Fechamento                      |
@@ -558,8 +571,9 @@ bool HorarioFechamento()
 
    bool cond0 = (horario_atual.hour > horario_fechamento.hour);
    bool cond1 = (horario_atual.hour == horario_fechamento.hour) && (horario_atual.min >= horario_fechamento.min);
+   bool cond2 = (remainingSeconds <= 0);
 
-   if(cond0 || cond1)
+   if(cond0 || cond1 || cond2)
       return true;
    else
       return false;
